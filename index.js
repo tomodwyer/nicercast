@@ -1,126 +1,122 @@
-var express = require('express');
-var http = require('http');
-var icecast = require('icecast-stack');
-var ip = require('ip');
-var lame = require('lame');
-var stream = new require('stream');
+const express = require("express");
+const http = require("http");
+const icecast = require("icecast-stack");
+const ip = require("ip");
+const lame = require("lame");
+const stream = require("stream");
 
 // 16-bit signed samples
-var SAMPLE_SIZE = 16, CHANNELS = 2, SAMPLE_RATE = 44100;
+const SAMPLE_SIZE = 16;
+const CHANNELS = 2;
+const SAMPLE_RATE = 44100;
 
-// If we're getting raw PCM data as expected, calculate the number of bytes
-// that need to be read for `1 Second` of audio data.
-var BLOCK_ALIGN = SAMPLE_SIZE / 8 * CHANNELS, BYTES_PER_SECOND = SAMPLE_RATE * BLOCK_ALIGN;
-
-var Server = function(inputStream, opts) {
-  var app = express();
+const Server = function server(inputStream, opts) {
+  const app = express();
   this.app = app;
   this.serverPort = false;
   this.inputStream = inputStream;
-  app.disable('x-powered-by');
+  app.disable("x-powered-by");
 
-  opts.name = opts.name || 'Nicercast';
+  const newOpts = opts;
 
-  var throttleStream = stream.PassThrough();
-  this._internalStream = throttleStream;
+  newOpts.name = newOpts.name || "Nicercast";
+
+  const throttleStream = stream.PassThrough();
+  this._internalStream = throttleStream; // eslint-disable-line no-underscore-dangle
   this.inputStream.pipe(throttleStream);
 
   // stream playlist (points to other endpoint)
-  var playlistEndpoint = function(req, res) {
-
-    var addr = ip.address();
+  const playlistEndpoint = function playlistEndpoint(req, res) {
+    const addr = ip.address();
 
     res.status(200);
-    res.set('Content-Type', 'audio/x-mpegurl');
-    res.send('http://' + addr + ':' + this.serverPort + '/listen');
+    res.set("Content-Type", "audio/x-mpegurl");
+    res.send(`http://${addr}:${this.serverPort}/listen`);
   }.bind(this);
 
-  app.get('/', playlistEndpoint);
-  app.get('/listen.m3u', playlistEndpoint);
-
+  app.get("/", playlistEndpoint);
+  app.get("/listen.m3u", playlistEndpoint);
 
   // audio endpoint
-  app.get('/listen', function(req, res, next) {
-
-    var acceptsMetadata = req.headers['icy-metadata'] === 1;
-    var parsed = require('url').parse(req.url, true);
+  // eslint-disable-next-line no-unused-vars
+  app.get("/listen", (req, res, next) => {
+    const acceptsMetadata = req.headers["icy-metadata"] === 1;
 
     // generate response header
-    var headers = {
-      "Content-Type": 'audio/mpeg',
-      "Connection" : 'close'
+    const headers = {
+      "Content-Type": "audio/mpeg",
+      Connection: "close"
     };
 
     if (acceptsMetadata) {
-      headers['icy-metaint'] = 8192;
+      headers["icy-metaint"] = 8192;
     }
 
     res.writeHead(200, headers);
 
     // setup metadata transport
     if (acceptsMetadata) {
-      res = new icecast.IcecastWriteStack(res, 8192);
-      res.queueMetadata(this.metadata || opts.name);
+      res = new icecast.IcecastWriteStack(res, 8192); // eslint-disable-line no-param-reassign
+      res.queueMetadata(this.metadata || newOpts.name);
     }
 
     // setup encoder
-    var encoder = new lame.Encoder({
+    const encoder = new lame.Encoder({
       channels: CHANNELS,
       bitDepth: SAMPLE_SIZE,
       sampleRate: SAMPLE_RATE
     });
 
-    var prevMetadata = 0;
-    encoder.on("data", function(chunk) {
-      if (acceptsMetadata && prevMetadata != this.metadata) {
-        res.queueMetadata(this.metadata || opts.name);
+    let prevMetadata = 0;
+    encoder.on("data", chunk => {
+      if (acceptsMetadata && prevMetadata !== this.metadata) {
+        res.queueMetadata(this.metadata || newOpts.name);
         prevMetadata = this.metadata;
       }
 
       res.write(chunk);
-    }.bind(this));
+    });
 
-    var callback = function(chunk) {
+    const callback = function cb(chunk) {
       encoder.write(chunk);
     };
 
     throttleStream.on("data", callback);
 
-    req.connection.on("close", function() {
+    req.connection.on("close", () => {
       encoder.end();
       throttleStream.removeListener("data", callback);
     });
-
-  }.bind(this));
-}
-
-Server.prototype.start = function(port, callback) {
-  this.serverPort = port != null ? port : 0;
-  this.server = http.createServer(this.app).listen(this.serverPort, function() {
-    this.serverPort = this.server.address().port;
-
-    if (callback && typeof callback === 'function') {
-      callback(this.serverPort);
-    }
-  }.bind(this));
-}
-
-Server.prototype.setInputStream = function(inputStream) {
-  this.inputStream.unpipe();
-  this.inputStream = inputStream;
-  this.inputStream.pipe(this._internalStream);
+  });
 };
 
-Server.prototype.setMetadata = function(metadata) {
+Server.prototype.start = function start(port, callback) {
+  this.serverPort = port != null ? port : 0;
+  this.server = http.createServer(this.app).listen(this.serverPort, () => {
+    this.serverPort = this.server.address().port;
+
+    if (callback && typeof callback === "function") {
+      callback(this.serverPort);
+    }
+  });
+};
+
+Server.prototype.setInputStream = function setInputStream(inputStream) {
+  this.inputStream.unpipe();
+  this.inputStream = inputStream;
+  this.inputStream.pipe(this._internalStream); // eslint-disable-line no-underscore-dangle
+};
+
+Server.prototype.setMetadata = function setMetadata(metadata) {
   this.metadata = metadata;
 };
 
-Server.prototype.stop = function() {
+Server.prototype.stop = function stop() {
   try {
     this.server.close();
   } catch (err) {
-
+    // Catch errors?
   }
-}
+};
 
 module.exports = Server;
