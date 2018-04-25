@@ -1,9 +1,9 @@
-var NicerCast = require('../index.js');
+const NicerCast = require("../index.js");
 
-var server = new NicerCast(process.stdin, {});
+const server = new NicerCast(process.stdin, {});
 server.start();
 
-var x = 0;
-setInterval(function() {
-	server.setMetadata('Test Metadata ' + x++);
+let x = 0;
+setInterval(() => {
+  server.setMetadata(`Test Metadata ${(x += 1)}`);
 }, 1000);

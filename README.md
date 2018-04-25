@@ -1,5 +1,4 @@
-nodecast
-========
+# nodecast
 
 Simple node.js icecast compliant streaming server.
 
