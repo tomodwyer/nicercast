@@ -10,13 +10,7 @@
     "type": "git",
     "url": "https://github.com/stephen/nicercast.git"
   },
-  "keywords": [
-    "streaming",
-    "icecast",
-    "server",
-    "audio",
-    "lame"
-  ],
+  "keywords": ["streaming", "icecast", "server", "audio", "lame"],
   "author": "Stephen Wan <stephen@stephenwan.net>",
   "license": "MIT",
   "bugs": {
@@ -24,9 +18,9 @@
   },
   "homepage": "https://github.com/stephen/nicercast",
   "dependencies": {
-    "express": "~4.16.1",
-    "icecast-stack": "~0.3.0",
-    "ip": "~0.3.0",
-    "lame": "^1.1.2"
+    "express": "^4.16.3",
+    "icecast-stack": "^0.3.0",
+    "ip": "^1.1.5",
+    "lame": "^1.2.4"
   }
 }
